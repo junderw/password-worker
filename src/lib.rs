@@ -3,13 +3,13 @@
 //! This module contains the `PasswordWorker` struct, which manages bcrypt hashing and verification
 //! operations using a combination of a `rayon` thread pool and `crossbeam-channel` to efficiently
 //! handle these operations asynchronously.
-//! 
+//!
 //! The methods will not block the tokio runtime. All await operations do not block. They use
 //! non-blocking channel implementations to send and receive passwords and hashes to the rayon thread
 //! pool.
-//! 
+//!
 //! `PasswordWorker` is `Send + Sync + Clone` and contains no lifetimes, so it can be used as axum
-//! state without an Arc. 
+//! state without an Arc.
 //!
 //! # Example
 //!
@@ -41,18 +41,18 @@ use tokio::sync::oneshot;
 pub enum PasswordWorkerError {
     #[error("Bcrypt error: {0}")]
     Bcrypt(#[from] bcrypt::BcryptError),
-    #[error("Channel send error")]
-    ChannelSend,
-    #[error("Channel receive error")]
-    ChannelRecv,
-    #[error("ThreadPool build error")]
-    ThreadPool,
-    #[error("No tokio runtime error")]
-    Runtime,
+    #[error("Channel send error: {0}")]
+    ChannelSend(#[from] crossbeam_channel::SendError<WorkerCommand>),
+    #[error("Channel receive error: {0}")]
+    ChannelRecv(#[from] tokio::sync::oneshot::error::RecvError),
+    #[error("ThreadPool build error: {0}")]
+    ThreadPool(#[from] rayon::ThreadPoolBuildError),
+    #[error("No tokio runtime error: {0}")]
+    Runtime(#[from] tokio::runtime::TryCurrentError),
 }
 
 #[derive(Debug)]
-enum WorkerCommand {
+pub enum WorkerCommand {
     Hash(
         String,
         u32,
@@ -96,32 +96,27 @@ impl PasswordWorker {
     pub fn new(max_threads: usize) -> Result<Self, PasswordWorkerError> {
         let (sender, receiver) = crossbeam_channel::unbounded::<WorkerCommand>();
 
-        let thread_pool = ThreadPoolBuilder::new()
-            .num_threads(max_threads)
-            .build()
-            .map_err(|_| PasswordWorkerError::ThreadPool)?;
+        let thread_pool = ThreadPoolBuilder::new().num_threads(max_threads).build()?;
 
-        tokio::runtime::Handle::try_current()
-            .map_err(|_| PasswordWorkerError::Runtime)?
-            .spawn_blocking(move || {
-                while let Ok(command) = receiver.recv() {
-                    match command {
-                        WorkerCommand::Hash(password, cost, result_sender) => {
-                            let result = thread_pool.install(|| hash(&password, cost));
-                            result_sender
-                                .send(result.map_err(PasswordWorkerError::Bcrypt))
-                                .ok()?;
-                        }
-                        WorkerCommand::Verify(password, hash, result_sender) => {
-                            let result = thread_pool.install(|| verify(&password, &hash));
-                            result_sender
-                                .send(result.map_err(PasswordWorkerError::Bcrypt))
-                                .ok()?;
-                        }
+        tokio::runtime::Handle::try_current()?.spawn_blocking(move || {
+            while let Ok(command) = receiver.recv() {
+                match command {
+                    WorkerCommand::Hash(password, cost, result_sender) => {
+                        let result = thread_pool.install(|| hash(&password, cost));
+                        result_sender
+                            .send(result.map_err(PasswordWorkerError::Bcrypt))
+                            .ok()?;
+                    }
+                    WorkerCommand::Verify(password, hash, result_sender) => {
+                        let result = thread_pool.install(|| verify(&password, &hash));
+                        result_sender
+                            .send(result.map_err(PasswordWorkerError::Bcrypt))
+                            .ok()?;
                     }
                 }
-                Some(())
-            });
+            }
+            Some(())
+        });
 
         Ok(PasswordWorker { sender })
     }
@@ -145,14 +140,17 @@ impl PasswordWorker {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn hash(&self, password: impl Into<String>, cost: u32) -> Result<String, PasswordWorkerError> {
+    pub async fn hash(
+        &self,
+        password: impl Into<String>,
+        cost: u32,
+    ) -> Result<String, PasswordWorkerError> {
         let (tx, rx) = oneshot::channel();
 
         self.sender
-            .send(WorkerCommand::Hash(password.into(), cost, tx))
-            .map_err(|_| PasswordWorkerError::ChannelSend)?;
+            .send(WorkerCommand::Hash(password.into(), cost, tx))?;
 
-        rx.await.map_err(|_| PasswordWorkerError::ChannelRecv)?
+        rx.await?
     }
 
     /// Asynchronously verifies a password against a bcrypt hash.
@@ -183,9 +181,8 @@ impl PasswordWorker {
         let (tx, rx) = oneshot::channel();
 
         self.sender
-            .send(WorkerCommand::Verify(password.into(), hash.into(), tx))
-            .map_err(|_| PasswordWorkerError::ChannelSend)?;
+            .send(WorkerCommand::Verify(password.into(), hash.into(), tx))?;
 
-        rx.await.map_err(|_| PasswordWorkerError::ChannelRecv)?
+        rx.await?
     }
 }

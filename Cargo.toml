@@ -1,6 +1,6 @@
 [package]
 name = "axum-password-worker"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A wrapper for bcrypt that can be used as axum State, and uses a rayon thread pool so it won't block the tokio runtime."
 license = "MIT"
