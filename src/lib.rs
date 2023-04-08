@@ -31,16 +31,14 @@
 //! # Ok(())
 //! # }
 //! ```
-use bcrypt::{hash, verify};
 use rayon::ThreadPoolBuilder;
-use thiserror::Error;
 use tokio::sync::oneshot;
 
 /// Errors that can occur in the `PasswordWorker`.
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum PasswordWorkerError<H: Hasher> {
     #[error("Hashing error: {0}")]
-    Hashing(String),
+    Hashing(#[from] H::Error),
     #[error("Channel send error: {0}")]
     ChannelSend(#[from] crossbeam_channel::SendError<WorkerCommand<H>>),
     #[error("Channel receive error: {0}")]
@@ -49,12 +47,6 @@ pub enum PasswordWorkerError<H: Hasher> {
     ThreadPool(#[from] rayon::ThreadPoolBuildError),
     #[error("No tokio runtime error: {0}")]
     Runtime(#[from] tokio::runtime::TryCurrentError),
-}
-
-impl<H: Hasher> From<String> for PasswordWorkerError<H> {
-    fn from(s: String) -> Self {
-        Self::Hashing(s)
-    }
 }
 
 #[derive(Debug)]
@@ -73,7 +65,7 @@ pub enum WorkerCommand<H: Hasher> {
 
 pub trait Hasher: 'static {
     type Config: Send + Sync + 'static;
-    type Error: core::fmt::Display + Send + Sync + 'static;
+    type Error: std::error::Error + Send + Sync + 'static;
     fn hash(data: impl AsRef<[u8]>, config: &Self::Config) -> Result<String, Self::Error>;
     fn verify(data: impl AsRef<[u8]>, hash: &str) -> Result<bool, Self::Error>;
 }
@@ -83,14 +75,14 @@ pub enum Bcrypt {}
 
 impl Hasher for Bcrypt {
     type Config = BcryptConfig;
-    type Error = PasswordWorkerError<Self>;
+    type Error = bcrypt::BcryptError;
 
     fn hash(data: impl AsRef<[u8]>, config: &Self::Config) -> Result<String, Self::Error> {
-        Ok(hash(data, config.cost).map_err(|e| e.to_string())?)
+        bcrypt::hash(data, config.cost)
     }
 
     fn verify(data: impl AsRef<[u8]>, hash: &str) -> Result<bool, Self::Error> {
-        Ok(verify(data, hash).map_err(|e| e.to_string())?)
+        bcrypt::verify(data, hash)
     }
 }
 
