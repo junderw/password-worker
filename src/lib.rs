@@ -16,14 +16,14 @@
 //! ```
 //! # #[tokio::main]
 //! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! use axum_password_worker::PasswordWorker;
+//! use axum_password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
 //!
 //! let password = "hunter2";
 //! let cost = 12; // bcrypt cost value
 //! let max_threads = 4; // rayon thread pool max threads
-//! let password_worker = PasswordWorker::new(max_threads)?;
+//! let password_worker = PasswordWorker::<Bcrypt>::new(max_threads)?;
 //!
-//! let hashed_password = password_worker.hash(password, cost).await?;
+//! let hashed_password = password_worker.hash(password, BcryptConfig { cost }).await?;
 //! println!("Hashed password: {:?}", hashed_password);
 //!
 //! let is_valid = password_worker.verify(password, hashed_password).await?;
@@ -38,11 +38,11 @@ use tokio::sync::oneshot;
 
 /// Errors that can occur in the `PasswordWorker`.
 #[derive(Debug, Error)]
-pub enum PasswordWorkerError {
-    #[error("Bcrypt error: {0}")]
-    Bcrypt(#[from] bcrypt::BcryptError),
+pub enum PasswordWorkerError<H: Hasher> {
+    #[error("Hashing error: {0}")]
+    Hashing(String),
     #[error("Channel send error: {0}")]
-    ChannelSend(#[from] crossbeam_channel::SendError<WorkerCommand>),
+    ChannelSend(#[from] crossbeam_channel::SendError<WorkerCommand<H>>),
     #[error("Channel receive error: {0}")]
     ChannelRecv(#[from] tokio::sync::oneshot::error::RecvError),
     #[error("ThreadPool build error: {0}")]
@@ -51,18 +51,52 @@ pub enum PasswordWorkerError {
     Runtime(#[from] tokio::runtime::TryCurrentError),
 }
 
+impl<H: Hasher> From<String> for PasswordWorkerError<H> {
+    fn from(s: String) -> Self {
+        Self::Hashing(s)
+    }
+}
+
 #[derive(Debug)]
-pub enum WorkerCommand {
+pub enum WorkerCommand<H: Hasher> {
     Hash(
         String,
-        u32,
-        oneshot::Sender<Result<String, PasswordWorkerError>>,
+        H::Config,
+        oneshot::Sender<Result<String, PasswordWorkerError<H>>>,
     ),
     Verify(
         String,
         String,
-        oneshot::Sender<Result<bool, PasswordWorkerError>>,
+        oneshot::Sender<Result<bool, PasswordWorkerError<H>>>,
     ),
+}
+
+pub trait Hasher: 'static {
+    type Config: Send + Sync + 'static;
+    type Error: core::fmt::Display + Send + Sync + 'static;
+    fn hash(data: impl AsRef<[u8]>, config: &Self::Config) -> Result<String, Self::Error>;
+    fn verify(data: impl AsRef<[u8]>, hash: &str) -> Result<bool, Self::Error>;
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Bcrypt {}
+
+impl Hasher for Bcrypt {
+    type Config = BcryptConfig;
+    type Error = PasswordWorkerError<Self>;
+
+    fn hash(data: impl AsRef<[u8]>, config: &Self::Config) -> Result<String, Self::Error> {
+        Ok(hash(data, config.cost).map_err(|e| e.to_string())?)
+    }
+
+    fn verify(data: impl AsRef<[u8]>, hash: &str) -> Result<bool, Self::Error> {
+        Ok(verify(data, hash).map_err(|e| e.to_string())?)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct BcryptConfig {
+    pub cost: u32,
 }
 
 /// A worker that handles password hashing and verification using a `rayon` thread pool
@@ -71,11 +105,11 @@ pub enum WorkerCommand {
 /// The `PasswordWorker` struct provides asynchronous password hashing and verification
 /// operations.
 #[derive(Debug, Clone)]
-pub struct PasswordWorker {
-    sender: crossbeam_channel::Sender<WorkerCommand>,
+pub struct PasswordWorker<H: Hasher> {
+    sender: crossbeam_channel::Sender<WorkerCommand<H>>,
 }
 
-impl PasswordWorker {
+impl<H: Hasher> PasswordWorker<H> {
     /// Creates a new `PasswordWorker` with the given bcrypt cost and maximum number of threads.
     ///
     /// The `cost` parameter determines the computational cost of the bcrypt hashing algorithm.
@@ -86,15 +120,15 @@ impl PasswordWorker {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// use axum_password_worker::PasswordWorker;
+    /// use axum_password_worker::{Bcrypt, PasswordWorker};
     ///
     /// let max_threads = 4; // rayon thread pool max threads
-    /// let password_worker = PasswordWorker::new(max_threads)?;
+    /// let password_worker: PasswordWorker<Bcrypt> = PasswordWorker::new(max_threads)?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(max_threads: usize) -> Result<Self, PasswordWorkerError> {
-        let (sender, receiver) = crossbeam_channel::unbounded::<WorkerCommand>();
+    pub fn new(max_threads: usize) -> Result<Self, PasswordWorkerError<H>> {
+        let (sender, receiver) = crossbeam_channel::unbounded::<WorkerCommand<H>>();
 
         let thread_pool = ThreadPoolBuilder::new().num_threads(max_threads).build()?;
 
@@ -102,15 +136,15 @@ impl PasswordWorker {
             while let Ok(command) = receiver.recv() {
                 match command {
                     WorkerCommand::Hash(password, cost, result_sender) => {
-                        let result = thread_pool.install(|| hash(&password, cost));
+                        let result = thread_pool.install(|| H::hash(&password, &cost));
                         result_sender
-                            .send(result.map_err(PasswordWorkerError::Bcrypt))
+                            .send(result.map_err(|e| e.to_string().into()))
                             .ok()?;
                     }
                     WorkerCommand::Verify(password, hash, result_sender) => {
-                        let result = thread_pool.install(|| verify(&password, &hash));
+                        let result = thread_pool.install(|| H::verify(&password, &hash));
                         result_sender
-                            .send(result.map_err(PasswordWorkerError::Bcrypt))
+                            .send(result.map_err(|e| e.to_string().into()))
                             .ok()?;
                     }
                 }
@@ -128,14 +162,14 @@ impl PasswordWorker {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// use axum_password_worker::PasswordWorker;
+    /// use axum_password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
     ///
     /// let password = "hunter2";
     /// let cost = 12; // bcrypt cost value
     /// let max_threads = 4; // rayon thread pool max threads
-    /// let password_worker = PasswordWorker::new(max_threads)?;
+    /// let password_worker = PasswordWorker::<Bcrypt>::new(max_threads)?;
     ///
-    /// let hashed_password = password_worker.hash(password, cost).await?;
+    /// let hashed_password = password_worker.hash(password, BcryptConfig { cost }).await?;
     /// println!("Hashed password: {:?}", hashed_password);
     /// # Ok(())
     /// # }
@@ -143,8 +177,8 @@ impl PasswordWorker {
     pub async fn hash(
         &self,
         password: impl Into<String>,
-        cost: u32,
-    ) -> Result<String, PasswordWorkerError> {
+        cost: H::Config,
+    ) -> Result<String, PasswordWorkerError<H>> {
         let (tx, rx) = oneshot::channel();
 
         self.sender
@@ -160,13 +194,13 @@ impl PasswordWorker {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// use axum_password_worker::PasswordWorker;
+    /// use axum_password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
     ///
     /// let password = "hunter2";
     /// let cost = 12; // bcrypt cost value
     /// let max_threads = 4; // rayon thread pool max threads
-    /// let password_worker = PasswordWorker::new(max_threads)?;
-    /// let hashed_password = password_worker.hash(password, cost).await?;
+    /// let password_worker = PasswordWorker::<Bcrypt>::new(max_threads)?;
+    /// let hashed_password = password_worker.hash(password, BcryptConfig { cost }).await?;
     ///
     /// let is_valid = password_worker.verify(password, hashed_password).await?;
     /// println!("Verification result: {:?}", is_valid);
@@ -177,7 +211,7 @@ impl PasswordWorker {
         &self,
         password: impl Into<String>,
         hash: impl Into<String>,
-    ) -> Result<bool, PasswordWorkerError> {
+    ) -> Result<bool, PasswordWorkerError<H>> {
         let (tx, rx) = oneshot::channel();
 
         self.sender

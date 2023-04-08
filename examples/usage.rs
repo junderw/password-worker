@@ -1,4 +1,4 @@
-use axum_password_worker::PasswordWorker;
+use axum_password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,8 +12,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Store the PasswordWorker in your axum state so that the login methods can access it.
     // The hash/verify methods only need &Self so no need to wrap it in a Mutex.
-    let password_worker = PasswordWorker::new(max_threads)?;
-    let hashed_password = password_worker.hash(password, cost).await?;
+    let password_worker = PasswordWorker::<Bcrypt>::new(max_threads)?;
+    let hashed_password = password_worker
+        .hash(password, BcryptConfig { cost })
+        .await?;
     println!("Hashed password: {:?}", hashed_password);
 
     let is_valid = password_worker.verify(password, hashed_password).await?;
