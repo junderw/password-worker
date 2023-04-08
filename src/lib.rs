@@ -38,7 +38,7 @@ use tokio::sync::oneshot;
 #[derive(Debug, thiserror::Error)]
 pub enum PasswordWorkerError<H: Hasher> {
     #[error("Hashing error: {0}")]
-    Hashing(#[from] H::Error),
+    Hashing(H::Error),
     #[error("Channel send error: {0}")]
     ChannelSend(#[from] crossbeam_channel::SendError<WorkerCommand<H>>),
     #[error("Channel receive error: {0}")]
@@ -130,13 +130,13 @@ impl<H: Hasher> PasswordWorker<H> {
                     WorkerCommand::Hash(password, cost, result_sender) => {
                         let result = thread_pool.install(|| H::hash(&password, &cost));
                         result_sender
-                            .send(result.map_err(|e| e.to_string().into()))
+                            .send(result.map_err(PasswordWorkerError::Hashing))
                             .ok()?;
                     }
                     WorkerCommand::Verify(password, hash, result_sender) => {
                         let result = thread_pool.install(|| H::verify(&password, &hash));
                         result_sender
-                            .send(result.map_err(|e| e.to_string().into()))
+                            .send(result.map_err(PasswordWorkerError::Hashing))
                             .ok()?;
                     }
                 }
