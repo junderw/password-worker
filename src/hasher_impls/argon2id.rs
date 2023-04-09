@@ -48,7 +48,6 @@ impl Hasher for Argon2id {
 
         argon_config.time_cost = config.time_cost;
         argon_config.mem_cost = config.mem_cost;
-        argon_config.lanes = config.lanes;
         argon_config.hash_length = config.hash_length;
 
         argon2::hash_encoded(data.as_ref(), &config.salt, &argon_config)
@@ -86,8 +85,6 @@ pub struct Argon2idConfig {
     pub time_cost: u32,
     /// Memory cost (higher takes longer)
     pub mem_cost: u32,
-    /// Number of lanes (higher takes longer)
-    pub lanes: u32,
     /// Length of hash output
     pub hash_length: u32,
 }
@@ -98,7 +95,6 @@ impl Default for Argon2idConfig {
             salt: Vec::new(),
             time_cost: 3,
             mem_cost: 4096,
-            lanes: 1,
             hash_length: 32,
         }
     }
