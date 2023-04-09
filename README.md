@@ -2,7 +2,7 @@
 
 A module providing a password hashing and verification worker.
 
-This module contains the `PasswordWorker` struct, which manages bcrypt hashing and verification
+This module contains the `PasswordWorker` struct, which manages hashing and verification
 operations using a combination of a `rayon` thread pool and `crossbeam-channel` to efficiently
 handle these operations asynchronously.
 
