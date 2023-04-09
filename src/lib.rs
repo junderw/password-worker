@@ -37,6 +37,7 @@
 //! There are some implementations included in the library. Each is tied to optional dependency features.
 //! * `bcrypt` - (default) (dependency), exports the Bcrypt and BcryptConfig types.
 //! * `rust-argon2` - (dependency), exports the Argon2id and Argon2idConfig types.
+#![deny(missing_docs)]
 
 mod hasher;
 mod hasher_impls;

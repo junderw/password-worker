@@ -5,14 +5,19 @@ use tokio::sync::oneshot;
 /// Errors that can occur in the `PasswordWorker`.
 #[derive(Debug, thiserror::Error)]
 pub enum PasswordWorkerError<H: Hasher> {
+    /// An error from the Hashing operation
     #[error("Hashing error: {0}")]
     Hashing(H::Error),
+    /// The worker thread must have died
     #[error("Channel send error: {0}")]
     ChannelSend(#[from] crossbeam_channel::SendError<WorkerCommand<H>>),
+    /// The worker thread must have died
     #[error("Channel receive error: {0}")]
     ChannelRecv(#[from] tokio::sync::oneshot::error::RecvError),
+    /// Couldn't create the rayon threadpool
     #[error("ThreadPool build error: {0}")]
     ThreadPool(#[from] rayon::ThreadPoolBuildError),
+    /// There was no tokio runtime running
     #[error("No tokio runtime error: {0}")]
     Runtime(#[from] tokio::runtime::TryCurrentError),
 }

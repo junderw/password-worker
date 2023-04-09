@@ -20,6 +20,7 @@ impl Hasher for Bcrypt {
 /// The configuration attributes needed to perform bcrypt hashing
 #[derive(Clone, Copy)]
 pub struct BcryptConfig {
+    /// Cost for hashing (higher takes longer)
     pub cost: u32,
 }
 

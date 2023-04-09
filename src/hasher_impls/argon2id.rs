@@ -63,10 +63,15 @@ impl Hasher for Argon2id {
 /// ```
 #[derive(Clone)]
 pub struct Argon2idConfig {
+    /// The salt for the password hash
     pub salt: String,
+    /// The time cost (higher takes longer)
     pub time_cost: u32,
+    /// Memory cost (higher takes longer)
     pub mem_cost: u32,
+    /// Number of lanes (higher takes longer)
     pub lanes: u32,
+    /// Length of hash output
     pub hash_length: u32,
 }
 
