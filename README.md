@@ -15,22 +15,23 @@ pool.
 # Example
 
 ```rust
-# #[tokio::main]
-# async fn main() -> Result<(), Box<dyn std::error::Error>> {
 use axum_password_worker::{BcryptConfig, PasswordWorker};
 
-let password = "hunter2";
-let cost = 12; // bcrypt cost value
-let max_threads = 4; // rayon thread pool max threads
-let password_worker = PasswordWorker::new_bcrypt(max_threads)?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let password = "hunter2";
+    let cost = 12; // bcrypt cost value
+    let max_threads = 4; // rayon thread pool max threads
+    let password_worker = PasswordWorker::new_bcrypt(max_threads)?;
 
-let hashed_password = password_worker.hash(password, BcryptConfig { cost }).await?;
-println!("Hashed password: {:?}", hashed_password);
+    let hashed_password = password_worker.hash(password, BcryptConfig { cost }).await?;
+    println!("Hashed password: {:?}", hashed_password);
 
-let is_valid = password_worker.verify(password, hashed_password).await?;
-println!("Verification result: {:?}", is_valid);
-# Ok(())
-# }
+    let is_valid = password_worker.verify(password, hashed_password).await?;
+    println!("Verification result: {:?}", is_valid);
+
+    Ok(())
+}
 ```
 
 # Available feature flags
