@@ -1,6 +1,6 @@
 [package]
 name = "axum-password-worker"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "A wrapper for bcrypt that can be used as axum State, and uses a rayon thread pool so it won't block the tokio runtime."
 license = "MIT"
@@ -10,9 +10,15 @@ documentation = "https://docs.rs/axum-password-worker/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["bcrypt"]
+
 [dependencies]
-bcrypt = "0.14"
 tokio = { version = "1", features = ["full"] }
 rayon = "1"
 crossbeam-channel = "0.5"
 thiserror = "1"
+
+# Optional hash algorithms
+bcrypt = { version = "0.14", optional = true }
+rust-argon2 = { version = "1", optional = true }
