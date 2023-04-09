@@ -10,6 +10,8 @@ documentation = "https://docs.rs/axum-password-worker/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# To check the docsrs output, run this command
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --open
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
