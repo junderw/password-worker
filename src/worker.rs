@@ -47,9 +47,8 @@ pub struct PasswordWorker<H: Hasher> {
 }
 
 impl<H: Hasher> PasswordWorker<H> {
-    /// Creates a new `PasswordWorker` with the given bcrypt cost and maximum number of threads.
+    /// Creates a new `PasswordWorker` with the given maximum number of threads.
     ///
-    /// The `cost` parameter determines the computational cost of the bcrypt hashing algorithm.
     /// The `max_threads` parameter specifies the maximum number of threads the worker can use.
     ///
     /// # Examples
@@ -92,7 +91,7 @@ impl<H: Hasher> PasswordWorker<H> {
         Ok(PasswordWorker { sender })
     }
 
-    /// Asynchronously hashes the given password using bcrypt.
+    /// Asynchronously hashes the given password using its hashing algorithm.
     ///
     /// # Example
     ///
@@ -124,7 +123,7 @@ impl<H: Hasher> PasswordWorker<H> {
         rx.await?
     }
 
-    /// Asynchronously verifies a password against a bcrypt hash.
+    /// Asynchronously verifies a password against a hash string.
     ///
     /// # Example
     ///
