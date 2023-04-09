@@ -35,14 +35,20 @@
 //! # Available feature flags
 //!
 //! There are some implementations included in the library. Each is tied to optional dependency features.
-//! * `bcrypt` - (default) (dependency), exports the Bcrypt And BcryptConfig types.
+//! * `bcrypt` - (default) (dependency), exports the Bcrypt and BcryptConfig types.
+//! * `rust-argon2` - (dependency), exports the Argon2id and Argon2idConfig types.
 
 mod hasher;
 mod hasher_impls;
 mod worker;
 
 pub use hasher::Hasher;
+pub use worker::{PasswordWorker, PasswordWorkerError};
+
 #[cfg(feature = "bcrypt")]
 #[cfg_attr(docsrs, doc(cfg(feature = "bcrypt")))]
 pub use hasher_impls::bcrypt::{Bcrypt, BcryptConfig};
-pub use worker::{PasswordWorker, PasswordWorkerError};
+
+#[cfg(feature = "rust-argon2")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rust-argon2")))]
+pub use hasher_impls::argon2id::{Argon2id, Argon2idConfig};

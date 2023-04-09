@@ -19,4 +19,6 @@ rayon = "1"
 crossbeam-channel = "0.5"
 thiserror = "1"
 
+# Optional hash algorithms
 bcrypt = { version = "0.14", optional = true }
+rust-argon2 = { version = "1", optional = true }

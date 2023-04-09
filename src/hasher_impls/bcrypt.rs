@@ -1,4 +1,4 @@
-use crate::Hasher;
+use crate::{Hasher, PasswordWorker, PasswordWorkerError};
 
 /// Use this type in the generic constructor to use bcrypt
 #[derive(Clone, Copy, Debug)]
@@ -21,4 +21,12 @@ impl Hasher for Bcrypt {
 #[derive(Clone, Copy)]
 pub struct BcryptConfig {
     pub cost: u32,
+}
+
+#[cfg_attr(docsrs, doc(cfg(feature = "bcrypt")))]
+impl PasswordWorker<Bcrypt> {
+    /// This constructor creates a new bcrypt instance
+    pub fn new_bcrypt(max_threads: usize) -> Result<Self, PasswordWorkerError<Bcrypt>> {
+        PasswordWorker::<Bcrypt>::new(max_threads)
+    }
 }
