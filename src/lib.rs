@@ -16,12 +16,12 @@
 //! ```
 //! # #[tokio::main]
 //! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! use axum_password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
+//! use axum_password_worker::{BcryptConfig, PasswordWorker};
 //!
 //! let password = "hunter2";
 //! let cost = 12; // bcrypt cost value
 //! let max_threads = 4; // rayon thread pool max threads
-//! let password_worker = PasswordWorker::<Bcrypt>::new(max_threads)?;
+//! let password_worker = PasswordWorker::new_bcrypt(max_threads)?;
 //!
 //! let hashed_password = password_worker.hash(password, BcryptConfig { cost }).await?;
 //! println!("Hashed password: {:?}", hashed_password);

@@ -3,6 +3,35 @@ use argon2::{Variant, Version};
 use crate::{Hasher, PasswordWorker, PasswordWorkerError};
 
 /// Use this type in the generic constructor to use argon2id
+///
+/// ```
+/// # fn get_rand() -> Vec<u8> { vec![1, 2, 3, 4, 5, 6, 7, 8] }
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use axum_password_worker::{Argon2id, Argon2idConfig, PasswordWorker};
+///
+/// let password = "hunter2";
+/// let salt: Vec<u8> = get_rand(); // Min length 8 bytes
+/// let max_threads = 4;
+/// let password_worker = PasswordWorker::<Argon2id>::new(max_threads)?;
+/// // let password_worker = PasswordWorker::new_argon2id(max_threads)?;
+///
+/// let hashed_password = password_worker
+///     .hash(
+///         password,
+///         Argon2idConfig {
+///             salt,
+///             ..Default::default()
+///         },
+///     )
+///     .await?;
+/// println!("Hashed password: {:?}", hashed_password);
+///
+/// let is_valid = password_worker.verify(password, hashed_password).await?;
+/// println!("Verification result: {:?}", is_valid);
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone, Copy, Debug)]
 pub enum Argon2id {}
 
@@ -22,7 +51,7 @@ impl Hasher for Argon2id {
         argon_config.lanes = config.lanes;
         argon_config.hash_length = config.hash_length;
 
-        argon2::hash_encoded(data.as_ref(), config.salt.as_bytes(), &argon_config)
+        argon2::hash_encoded(data.as_ref(), &config.salt, &argon_config)
     }
 
     fn verify(data: impl AsRef<[u8]>, hash: &str) -> Result<bool, Self::Error> {
@@ -36,35 +65,23 @@ impl Hasher for Argon2id {
 /// with the salt being an empty String.
 ///
 /// ```
+/// # fn get_rand() -> Vec<u8> { vec![1, 2, 3, 4, 5, 6, 7, 8] }
 /// # #[tokio::main]
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// use axum_password_worker::{Argon2id, Argon2idConfig, PasswordWorker};
+/// use axum_password_worker::Argon2idConfig;
 ///
-/// let password = "hunter2";
-/// let salt = "deadbeef".into();
-/// let max_threads = 4;
-/// let password_worker = PasswordWorker::<Argon2id>::new(max_threads)?;
-///
-/// let hashed_password = password_worker
-///     .hash(
-///         password,
-///         Argon2idConfig {
-///             salt,
-///             ..Default::default()
-///         },
-///     )
-///     .await?;
-/// println!("Hashed password: {:?}", hashed_password);
-///
-/// let is_valid = password_worker.verify(password, hashed_password).await?;
-/// println!("Verification result: {:?}", is_valid);
+/// let salt: Vec<u8> = get_rand(); // Min length 8 bytes
+/// let config = Argon2idConfig {
+///     salt,
+///     ..Default::default()
+/// };
 /// # Ok(())
 /// # }
 /// ```
 #[derive(Clone)]
 pub struct Argon2idConfig {
-    /// The salt for the password hash
-    pub salt: String,
+    /// The salt for the password hash (Minimum length 8 bytes)
+    pub salt: Vec<u8>,
     /// The time cost (higher takes longer)
     pub time_cost: u32,
     /// Memory cost (higher takes longer)
@@ -78,7 +95,7 @@ pub struct Argon2idConfig {
 impl Default for Argon2idConfig {
     fn default() -> Self {
         Self {
-            salt: String::new(),
+            salt: Vec::new(),
             time_cost: 3,
             mem_cost: 4096,
             lanes: 1,
