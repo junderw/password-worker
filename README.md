@@ -4,13 +4,16 @@ A module providing a password hashing and verification worker.
 
 This module contains the `PasswordWorker` struct, which manages hashing and verification
 operations using a combination of a `rayon` thread pool and `crossbeam-channel` to efficiently
-handle these operations asynchronously.
+handle these operations asynchronously. It also makes use of a `tokio::sync::oneshot` channel
+but does not require the tokio runtime to be present.
 
-The methods will not block the tokio runtime. All await operations do not block. They use
+The methods will not block the async runtime. All await operations do not block. They use
 non-blocking channel implementations to send and receive passwords and hashes to the rayon thread
 pool.
 
-`PasswordWorker` is `Send + Sync + Clone` and contains no lifetimes, so it can be used as axum state without an Arc.
+`PasswordWorker` is `Send + Sync + Clone`, and contains no lifetimes. The Clone implementation
+is a shallow copy that "points" to the same thread pool. It can be used as shared state without
+an Arc. All methods take `&self` so a `Mutex` is also not necessary.
 
 # Example
 

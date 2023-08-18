@@ -100,7 +100,6 @@ impl Default for Argon2idConfig {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rust-argon2")))]
 impl PasswordWorker<Argon2id> {
     /// This constructor creates a new argon2id instance
     pub fn new_argon2id(max_threads: usize) -> Result<Self, PasswordWorkerError<Argon2id>> {

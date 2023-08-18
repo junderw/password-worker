@@ -2,13 +2,17 @@
 name = "axum-password-worker"
 version = "0.3.4"
 edition = "2021"
-description = "A wrapper for password hashing that can be used as axum State, and uses a rayon thread pool so it won't block the tokio runtime."
+description = "A wrapper for password hashing that can be used as shared state, and uses a rayon thread pool so it won't block the async runtime."
 license = "MIT"
 authors = ["Jonathan Underwood <jonathan.underwood4649@gmail.com>"]
 repository = "https://github.com/junderw/axum-password-worker/"
 documentation = "https://docs.rs/axum-password-worker/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[example]]
+name = "usage"
+required-features = ["bcrypt", "rust-argon2"]
 
 # To check the docsrs output, run this command
 # RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --open
@@ -20,11 +24,14 @@ rustdoc-args = ["--cfg", "docsrs"]
 default = ["bcrypt"]
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", default-features = false, features = ["sync"] }
 rayon = "1"
 crossbeam-channel = "0.5"
 thiserror = "1"
 
 # Optional hash algorithms
-bcrypt = { version = "0.14", optional = true }
-rust-argon2 = { version = "1", optional = true }
+bcrypt = { version = "0.15", optional = true }
+rust-argon2 = { version = "2", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["sync", "rt-multi-thread", "macros"] }

@@ -17,9 +17,6 @@ pub enum PasswordWorkerError<H: Hasher> {
     /// Couldn't create the rayon threadpool
     #[error("ThreadPool build error: {0}")]
     ThreadPool(#[from] rayon::ThreadPoolBuildError),
-    /// There was no tokio runtime running
-    #[error("No tokio runtime error: {0}")]
-    Runtime(#[from] tokio::runtime::TryCurrentError),
 }
 
 #[derive(Debug)]
@@ -68,7 +65,7 @@ impl<H: Hasher> PasswordWorker<H> {
 
         let thread_pool = ThreadPoolBuilder::new().num_threads(max_threads).build()?;
 
-        tokio::runtime::Handle::try_current()?.spawn_blocking(move || {
+        std::thread::spawn(move || {
             while let Ok(command) = receiver.recv() {
                 match command {
                     WorkerCommand::Hash(password, cost, result_sender) => {

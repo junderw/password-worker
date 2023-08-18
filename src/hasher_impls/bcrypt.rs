@@ -24,7 +24,6 @@ pub struct BcryptConfig {
     pub cost: u32,
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "bcrypt")))]
 impl PasswordWorker<Bcrypt> {
     /// This constructor creates a new bcrypt instance
     pub fn new_bcrypt(max_threads: usize) -> Result<Self, PasswordWorkerError<Bcrypt>> {
