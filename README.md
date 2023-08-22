@@ -14,6 +14,11 @@ pool.
 
 # Example
 
+```
+cargo run --example usage --features rust-argon2
+```
+
+
 ```rust
 use axum_password_worker::{BcryptConfig, PasswordWorker};
 
