@@ -1,4 +1,4 @@
-# axum-password-worker
+# axum-password-worker [![Latest Version](https://img.shields.io/crates/v/axum-password-worker.svg)](https://crates.io/crates/axum-password-worker)
 
 A module providing a password hashing and verification worker.
 
@@ -14,6 +14,17 @@ pool.
 `PasswordWorker` is `Send + Sync + Clone`, and contains no lifetimes. The Clone implementation
 is a shallow copy that "points" to the same thread pool. It can be used as shared state without
 an Arc. All methods take `&self` so a `Mutex` is also not necessary.
+
+# Add as Dependency
+
+<!-- If you use `text` or `bash` etc. on the code block it won't get run as a doctest -->
+```bash
+cargo add axum-password-worker
+
+## OR if you want to also add argon2 support
+
+cargo add axum-password-worker -F rust-argon2
+```
 
 # Example
 
