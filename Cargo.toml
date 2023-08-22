@@ -1,6 +1,6 @@
 [package]
 name = "axum-password-worker"
-version = "0.3.4"
+version = "0.4.0"
 edition = "2021"
 description = "A wrapper for password hashing that can be used as shared state, and uses a rayon thread pool so it won't block the async runtime."
 license = "MIT"
