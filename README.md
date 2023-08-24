@@ -1,3 +1,9 @@
+# DEPRECATED: Switched the crate name to `password-worker`
+
+Crates IO: https://crates.io/crates/password-worker
+
+GitHub: https://github.com/junderw/password-worker
+
 # axum-password-worker [![Latest Version](https://img.shields.io/crates/v/axum-password-worker.svg)](https://crates.io/crates/axum-password-worker)
 
 A module providing a password hashing and verification worker.
