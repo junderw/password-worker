@@ -8,7 +8,7 @@ use crate::{Hasher, PasswordWorker, PasswordWorkerError};
 /// # fn get_rand() -> Vec<u8> { vec![1, 2, 3, 4, 5, 6, 7, 8] }
 /// # #[tokio::main]
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// use axum_password_worker::{Argon2id, Argon2idConfig, PasswordWorker};
+/// use password_worker::{Argon2id, Argon2idConfig, PasswordWorker};
 ///
 /// let password = "hunter2";
 /// let salt: Vec<u8> = get_rand(); // Min length 8 bytes
@@ -67,7 +67,7 @@ impl Hasher for Argon2id {
 /// # fn get_rand() -> Vec<u8> { vec![1, 2, 3, 4, 5, 6, 7, 8] }
 /// # #[tokio::main]
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// use axum_password_worker::Argon2idConfig;
+/// use password_worker::Argon2idConfig;
 ///
 /// let salt: Vec<u8> = get_rand(); // Min length 8 bytes
 /// let config = Argon2idConfig {

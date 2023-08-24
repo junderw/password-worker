@@ -1,4 +1,4 @@
-# axum-password-worker [![Latest Version](https://img.shields.io/crates/v/axum-password-worker.svg)](https://crates.io/crates/axum-password-worker)
+# password-worker [![Latest Version](https://img.shields.io/crates/v/password-worker.svg)](https://crates.io/crates/password-worker)
 
 A module providing a password hashing and verification worker.
 
@@ -19,17 +19,17 @@ an Arc. All methods take `&self` so a `Mutex` is also not necessary.
 
 <!-- If you use `text` or `bash` etc. on the code block it won't get run as a doctest -->
 ```bash
-cargo add axum-password-worker
+cargo add password-worker
 
 ## OR if you want to also add argon2 support
 
-cargo add axum-password-worker -F rust-argon2
+cargo add password-worker -F rust-argon2
 ```
 
 # Example
 
 ```rust
-use axum_password_worker::{BcryptConfig, PasswordWorker};
+use password_worker::{BcryptConfig, PasswordWorker};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

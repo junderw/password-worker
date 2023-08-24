@@ -53,7 +53,7 @@ impl<H: Hasher> PasswordWorker<H> {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// use axum_password_worker::{Bcrypt, PasswordWorker};
+    /// use password_worker::{Bcrypt, PasswordWorker};
     ///
     /// let max_threads = 4; // rayon thread pool max threads
     /// let password_worker: PasswordWorker<Bcrypt> = PasswordWorker::new(max_threads)?;
@@ -95,7 +95,7 @@ impl<H: Hasher> PasswordWorker<H> {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// use axum_password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
+    /// use password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
     ///
     /// let password = "hunter2";
     /// let cost = 12; // bcrypt cost value
@@ -127,7 +127,7 @@ impl<H: Hasher> PasswordWorker<H> {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// use axum_password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
+    /// use password_worker::{Bcrypt, BcryptConfig, PasswordWorker};
     ///
     /// let password = "hunter2";
     /// let cost = 12; // bcrypt cost value

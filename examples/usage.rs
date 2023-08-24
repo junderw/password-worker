@@ -1,4 +1,4 @@
-use axum_password_worker::{Argon2idConfig, BcryptConfig, PasswordWorker};
+use password_worker::{Argon2idConfig, BcryptConfig, PasswordWorker};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
